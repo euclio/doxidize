@@ -10,10 +10,12 @@ extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
 
+use std::path::PathBuf;
+
 use slog::Drain;
 use structopt::StructOpt;
 
-use doxidize::Config;
+use doxidize::{Config, error};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "doxidize", about = "Excellent documentation tooling for Rust")]
@@ -22,8 +24,10 @@ struct Opt {
     command: Option<Command>,
 
     #[structopt(long = "manifest-path",
-                help = "The path to a Cargo.toml, defaults to `./Cargo.toml`")]
-    manifest_path: Option<String>,
+                help = "Path to Cargo.toml",
+                default_value = "Cargo.toml",
+                parse(from_os_str))]
+    manifest_path: PathBuf,
 }
 
 #[derive(StructOpt, Debug)]
@@ -55,32 +59,27 @@ fn main() {
 
     let opts = Opt::from_args();
 
-    let config = if let Some(ref manifest_path) = opts.manifest_path {
-        Config::with_manifest_path(manifest_path)
-    } else {
-        Config::default()
-    };
+    let config = Config::new(opts.manifest_path);
 
-    let result = match opts {
-        Opt { ref command, .. } if command.is_some() => {
-            // we just checked that it's Some
-            match *command.as_ref().unwrap() {
-                Command::Build => doxidize::ops::build(&config, &log),
-                Command::Clean => doxidize::ops::clean(&config, &log),
-                Command::Publish => doxidize::ops::publish(&config, &log),
-                Command::Serve => doxidize::ops::serve(config, &log),
-                Command::Init => doxidize::ops::init(&config, &log),
-                Command::Update => doxidize::ops::update(&config, &log),
-            }
-        }
-        _ => {
-            // default with no command
-            doxidize::ops::init(&config, &log)
-        }
+    let result = match opts.command {
+        Some(Command::Build) => doxidize::ops::build(&config, &log),
+        Some(Command::Clean) => doxidize::ops::clean(&config, &log),
+        Some(Command::Publish) => doxidize::ops::publish(&config, &log),
+        Some(Command::Serve) => doxidize::ops::serve(config, &log),
+        Some(Command::Init) => doxidize::ops::init(&config, &log),
+        Some(Command::Update) => doxidize::ops::update(&config, &log),
+        None => doxidize::ops::init(&config, &log),
     };
 
     if let Err(err) = result {
-        eprintln!("error! {}", err);
+        eprintln!("error: {}", err);
+
+        if err.downcast_ref::<error::InitializedProject>().is_some() {
+            eprintln!("help: try removing the docs directory and/or Doxidize.toml and try again");
+        } else if err.downcast_ref::<error::UninitializedProject>().is_some() {
+            eprintln!("help: try `doxidize init`");
+        }
+
         std::process::exit(1);
     }
 }

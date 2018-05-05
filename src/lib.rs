@@ -5,6 +5,7 @@
 extern crate comrak;
 #[macro_use]
 extern crate configure;
+#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
@@ -27,7 +28,7 @@ extern crate walkdir;
 
 mod cargo;
 mod config;
-mod error;
+pub mod error;
 pub mod examples;
 mod git;
 pub mod ops;

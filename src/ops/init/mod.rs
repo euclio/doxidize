@@ -39,18 +39,14 @@ fn check_for_existing_docs(config: &Config, log: &Logger) -> Result<()> {
 
     if doxidize_config.is_file() {
         trace!(log, "doxidize config existed");
-        return Err(error::InitializedProject {
-            location: config.root_path().to_path_buf(),
-        }.into());
+        bail!(error::InitializedProject);
     }
 
     let docs_dir = config.markdown_path();
 
     if docs_dir.is_dir() {
         trace!(log, "doc dir existed");
-        return Err(error::InitializedProject {
-            location: config.root_path().to_path_buf(),
-        }.into());
+        bail!(error::InitializedProject);
     }
 
     debug!(log, "done");

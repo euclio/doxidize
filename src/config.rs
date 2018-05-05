@@ -3,14 +3,12 @@ use handlebars::{self, Handlebars};
 use serde::Deserializer;
 use toml_edit;
 
-use std::default::Default;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
 
 /// A structure that contains various fields that hold data in order to generate doc output.
 #[derive(Debug, Deserialize, Configure)]
-#[serde(default)]
 pub struct Config {
     /// Path to the `Cargo.toml` file for the crate being analyzed
     manifest_path: PathBuf,
@@ -26,40 +24,6 @@ pub struct Config {
 
     #[serde(deserialize_with = "deserialize_handlebars")]
     handlebars: Handlebars,
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        let manifest_path = PathBuf::from("Cargo.toml");
-        let host = analysis::AnalysisHost::new(analysis::Target::Debug);
-
-        let config_path = PathBuf::from("Doxidize.toml");
-        let mut contents = String::new();
-
-        let base_url = (|| {
-            let mut toml_file = File::open(config_path)?;
-            toml_file.read_to_string(&mut contents)?;
-            let doc = contents.parse::<toml_edit::Document>()?;
-
-            Ok((|| {
-                let value = doc["docs"]["base-url"].as_value()?;
-                let value = value.as_str()?;
-                Some(value.to_string())
-            })()
-                .ok_or("")?)
-        })()
-            .unwrap_or_else(|_: Box<::std::error::Error>| String::from(""));
-
-        let handlebars = default_handlebars();
-
-        Config {
-            manifest_path,
-            host,
-            output_path: None,
-            base_url,
-            handlebars,
-        }
-    }
 }
 
 fn deserialize_host<'de, D>(_: D) -> ::std::result::Result<analysis::AnalysisHost, D::Error>
@@ -121,11 +85,10 @@ fn default_handlebars() -> Handlebars {
 }
 
 impl Config {
-    pub fn with_manifest_path<P: Into<PathBuf>>(manifest_path: P) -> Config {
-        let manifest_path = manifest_path.into();
+    pub fn new(manifest_path: PathBuf) -> Self {
         let host = analysis::AnalysisHost::new(analysis::Target::Debug);
 
-        let config_path = manifest_path.parent().unwrap().join("Doxidize.toml");
+        let config_path = PathBuf::from("Doxidize.toml");
         let mut contents = String::new();
 
         let base_url = (|| {

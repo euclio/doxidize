@@ -14,6 +14,7 @@ use error;
 use Result;
 
 /// metadata for each file we need to process
+#[derive(Debug)]
 struct DocMarkdown {
     id: String,
     title: String,

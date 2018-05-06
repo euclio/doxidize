@@ -1,38 +1,20 @@
 extern crate doxidize;
-
-#[macro_use]
-extern crate slog;
-extern crate slog_async;
-extern crate slog_term;
-extern crate tempdir;
-
-mod util;
-
-use doxidize::Config;
-
-use tempdir::TempDir;
+extern crate doxidize_test;
 
 #[test]
 fn clean_deletes_directory_in_target() {
-    let dir = TempDir::new("create_root_readme").expect("could not generate temp dir");
-    let log = util::make_logger();
+    let p = doxidize_test::project().build();
 
-    let dir_path = dir.path();
+    doxidize::ops::init(&p.config, &p.log).expect("init failed");
+    doxidize::ops::build(&p.config, &p.log).expect("build failed");
 
-    util::cargo_init(dir_path).expect("Could not create sample crate");
-
-    let config = Config::with_manifest_path(dir_path.join("Cargo.toml"));
-
-    doxidize::ops::init(&config, &log).expect("init failed");
-    doxidize::ops::build(&config, &log).expect("build failed");
-
-    let target_docs_dir = dir_path.join("target").join("docs");
+    let target_docs_dir = p.dir().join("target").join("docs");
     assert!(
         target_docs_dir.is_dir(),
         format!("{} is not a directory", target_docs_dir.display())
     );
 
-    doxidize::ops::clean(&config, &log).expect("clean failed");
+    doxidize::ops::clean(&p.config, &p.log).expect("clean failed");
 
     assert!(!target_docs_dir.is_dir());
 }

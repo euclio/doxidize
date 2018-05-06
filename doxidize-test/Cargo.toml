@@ -1,0 +1,10 @@
+[package]
+name = "doxidize-test"
+version = "0.1.0"
+authors = ["steveklabnik <steve@steveklabnik.com>"]
+publish = false
+
+[dependencies]
+doxidize = { path = ".." }
+slog = "2"
+tempdir = "0.3"
